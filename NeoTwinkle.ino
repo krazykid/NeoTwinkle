@@ -27,10 +27,10 @@ struct pixData {
     byte rInit;
     byte gInit;
     byte bInit;
-    byte bright;
-    byte step;
-    byte initDelay;
-    byte blackDelay;
+    int bright;
+    int step;
+    int initDelay;
+    int blackDelay;
 };
 
 // When we setup the NeoPixel library, we tell it how many pixels, and
