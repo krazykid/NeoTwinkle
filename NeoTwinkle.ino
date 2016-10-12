@@ -1,5 +1,7 @@
+// Code based on:
 // NeoPixel Ring simple sketch (c) 2013 Shae Erisson
-// released under the GPLv3 license to match the rest of the AdaFruit NeoPixel library
+// released under the GPLv3 license to match the rest of the AdaFruit
+// NeoPixel library
 
 #include <Adafruit_NeoPixel.h>
 #ifdef __AVR__
@@ -20,26 +22,70 @@
 #define R              0
 #define G              1
 #define B              2
-#define R_INIT         3
-#define G_INIT         4
-#define B_INIT         5
-#define BRIGHT         6
-#define STEP           7
-#define INIT_DELAY     8
-#define BLACK_DELAY    9
 
+struct pixData {
+    byte rInit;
+    byte gInit;
+    byte bInit;
+    byte bright;
+    byte step;
+    byte initDelay;
+    byte blackDelay;
+};
 
-// When we setup the NeoPixel library, we tell it how many pixels, and which pin to use to send signals.
-// Note that for older NeoPixel strips you might need to change the third parameter--see the strandtest
-// example for more information on possible values.
+// When we setup the NeoPixel library, we tell it how many pixels, and
+// which pin to use to send signals.  Note that for older NeoPixel
+// strips you might need to change the third parameter--see the
+// strandtest example for more information on possible values.
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
-int delayval = 20; // delay for half a second
-int pixelArr[NUMPIXELS][10]; // R, G, B, Brightness, Step
+// delay for 20 milli sec.
+int delayval = 20;
+struct pixData pixelArr[NUMPIXELS];
+
+void initPixelColor(struct pixData *pix) {
+    pix->bright = 128 + random(INIT_BRIGHT);
+    pix->step = random(MAX_STEP)+1;
+    pix->initDelay = 30 + (random(RAND_DELAY) * 5);
+    pix->blackDelay = 10 + (random(RAND_DELAY) * 10);
+
+    pix->rInit = random(MAX_RGB);
+    pix->gInit = random(MAX_RGB);
+    pix->bInit = random(MAX_RGB);
+}
+
+
+void mkPixel(struct pixData *pixInfo, byte retPix[]) {
+    float brightPer = (float) pixInfo->bright / 255.0;
+    retPix[R] = (int) ( (float) pixInfo->rInit * brightPer );
+    retPix[G] = (int) ( (float) pixInfo->gInit * brightPer );
+    retPix[B] = (int) ( (float) pixInfo->bInit * brightPer );
+
+    if (pixInfo->initDelay > 0) {
+        pixInfo->initDelay -= 1;
+        return;
+    }
+
+    if (pixInfo->bright <= 0) {
+        if (pixInfo->blackDelay >= 0) {
+            pixInfo->blackDelay -= 1;
+            return;
+        }
+
+        initPixelColor(pixInfo);
+        return;
+    }
+
+    pixInfo->bright -= pixInfo->step;
+    if (pixInfo->bright < 0) {
+        pixInfo->bright = 0;
+    }
+}
 
 
 void setup() {
-    // This is for Trinket 5V 16MHz, you can remove these three lines if you are not using a Trinket
+    // This is for Trinket 5V 16MHz, you can remove these three lines
+    // if you are not using a Trinket
 #if defined (__AVR_ATtiny85__)
     if (F_CPU == 16000000) clock_prescale_set(clock_div_1);
 #endif
@@ -49,72 +95,28 @@ void setup() {
     randomSeed(analogRead(1));
 
     for (int i=0; i<NUMPIXELS; i++) {
-        mkPixelColor(pixelArr[i]);
+        initPixelColor(&pixelArr[i]);
 
-        int r = pixelArr[R];
-        int g = pixelArr[G];
-        int b = pixelArr[B];
-
-        // pixels.Color takes RGB values, from 0,0,0 up to 255,255,255
-        pixels.setPixelColor(i, pixels.Color(r,g,b)); // Moderately bright green color.
+        byte pixRGB[3];
+        mkPixel(&pixelArr[i], pixRGB);
+        pixels.setPixelColor(i, pixels.Color(pixRGB[R],
+                                             pixRGB[G],
+                                             pixRGB[B]));
     }
-}
-
-
-void mkPixelColor(int pix[]) {
-    pix[BRIGHT] = 128 + random(INIT_BRIGHT);
-    pix[STEP] = random(MAX_STEP)+1;
-    pix[INIT_DELAY] = 30 + (random(RAND_DELAY) * 5);
-    pix[BLACK_DELAY] = 10 + (random(RAND_DELAY) * 10);
-
-    pix[R_INIT] = random(MAX_RGB);
-    pix[G_INIT] = random(MAX_RGB);
-    pix[B_INIT] = random(MAX_RGB);
-
-    pix[R] = (int) ( (float) pix[R_INIT] * ( (float) pix[BRIGHT] / 255.0) );
-    pix[G] = (int) ( (float) pix[G_INIT] * ( (float) pix[BRIGHT] / 255.0) );
-    pix[B] = (int) ( (float) pix[B_INIT] * ( (float) pix[BRIGHT] / 255.0) );
-}
-
-
-void stepPixel(int pix[]) {
-    if (pix[INIT_DELAY] > 0) {
-        pix[INIT_DELAY] -= 1;
-        return;
-    }
-
-    if (pix[BRIGHT] <= 0) {
-        if (pix[BLACK_DELAY] >= 0) {
-            pix[BLACK_DELAY] -= 1;
-            return;
-        }
-
-        mkPixelColor(pix);
-        return;
-    }
-
-    pix[BRIGHT] -= pix[STEP];
-    if (pix[BRIGHT] < 0) {
-        pix[BRIGHT] = 0;
-    }
-
-    pix[R] = (int) ( (float) pix[R_INIT] * ( (float) pix[BRIGHT] / 255.0) );
-    pix[G] = (int) ( (float) pix[G_INIT] * ( (float) pix[BRIGHT] / 255.0) );
-    pix[B] = (int) ( (float) pix[B_INIT] * ( (float) pix[BRIGHT] / 255.0) );
 }
 
 
 void loop() {
+    // For a set of NeoPixels the first NeoPixel is 0, second is 1,
+    // all the way up to the count of pixels minus one.
 
-    // For a set of NeoPixels the first NeoPixel is 0, second is 1, all the way up to the count of pixels minus one.
     for(int i=0;i<NUMPIXELS;i++){
-        int r = pixelArr[i][R];
-        int g = pixelArr[i][G];
-        int b = pixelArr[i][B];
+        byte pixRGB[3];
+        mkPixel(&pixelArr[i], pixRGB);
 
-        // pixels.Color takes RGB values, from 0,0,0 up to 255,255,255
-        pixels.setPixelColor(i, pixels.Color(r,g,b)); // Moderately bright green color.
-        stepPixel(pixelArr[i]);
+        pixels.setPixelColor(i, pixels.Color(pixRGB[R],
+                                             pixRGB[G],
+                                             pixRGB[B]));
     }
    
     pixels.show(); // This sends the updated pixel color to the hardware.
