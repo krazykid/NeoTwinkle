@@ -27,7 +27,8 @@ struct pixData {
     byte rInit;
     byte gInit;
     byte bInit;
-    int bright;
+    int maxBright;
+    int curBright;
     int step;
     int initDelay;
     int blackDelay;
@@ -44,7 +45,8 @@ int delayval = 20;
 struct pixData pixelArr[NUMPIXELS];
 
 void initPixelColor(struct pixData *pix) {
-    pix->bright = 128 + random(INIT_BRIGHT);
+    pix->curBright = 0;
+    pix->maxBright = 128 + random(INIT_BRIGHT);
     pix->step = random(MAX_STEP)+1;
     pix->initDelay = 30 + (random(RAND_DELAY) * 5);
     pix->blackDelay = 10 + (random(RAND_DELAY) * 10);
@@ -56,29 +58,55 @@ void initPixelColor(struct pixData *pix) {
 
 
 void mkPixel(struct pixData *pixInfo, byte retPix[]) {
-    float brightPer = (float) pixInfo->bright / 255.0;
+    float brightPer = (float) pixInfo->curBright / 255.0;
     retPix[R] = (int) ( (float) pixInfo->rInit * brightPer );
     retPix[G] = (int) ( (float) pixInfo->gInit * brightPer );
     retPix[B] = (int) ( (float) pixInfo->bInit * brightPer );
 
-    if (pixInfo->initDelay > 0) {
-        pixInfo->initDelay -= 1;
-        return;
-    }
 
-    if (pixInfo->bright <= 0) {
-        if (pixInfo->blackDelay >= 0) {
-            pixInfo->blackDelay -= 1;
+
+    if (pixInfo->step > 0) {
+        // Achieved max brightness
+        if (pixInfo->curBright >= pixInfo->maxBright) {
+            if (pixInfo->initDelay > 0) {
+                pixInfo->initDelay -= 1;
+                return;
+            }
+
+            pixInfo->step *= -1;
             return;
         }
 
-        initPixelColor(pixInfo);
-        return;
-    }
+        // Step up to max brightness
+        else {
+            pixInfo->curBright += pixInfo->step;
+            if (pixInfo->curBright > 255) {
+                pixInfo->curBright = 255;
+            }
 
-    pixInfo->bright -= pixInfo->step;
-    if (pixInfo->bright < 0) {
-        pixInfo->bright = 0;
+            return;
+        }
+    } // if (pixInfo->step > 0) {
+
+    
+    else {
+        if (pixInfo->curBright <= 0) {
+            // Pixel should be black
+            if (pixInfo->blackDelay >= 0) {
+                pixInfo->blackDelay -= 1;
+                return;
+            }
+
+            // Pixel is done being black, get new color
+            initPixelColor(pixInfo);
+            return;
+        }
+
+        // Fade to black
+        pixInfo->curBright += pixInfo->step;
+        if (pixInfo->maxBright < 0) {
+            pixInfo->maxBright = 0;
+        }
     }
 }
 
