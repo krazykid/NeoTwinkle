@@ -47,9 +47,9 @@ struct pixData pixelArr[NUMPIXELS];
 void initPixelColor(struct pixData *pix) {
     pix->curBright = 0;
     pix->maxBright = 128 + random(INIT_BRIGHT);
-    pix->step = random(MAX_STEP)+1;
-    pix->initDelay = 30 + (random(RAND_DELAY) * 5);
-    pix->blackDelay = 10 + (random(RAND_DELAY) * 10);
+    pix->step = random(MAX_STEP)+8;
+    pix->initDelay = 30 + (random(RAND_DELAY) * 8);
+    pix->blackDelay = 20 + (random(RAND_DELAY) * 5);
 
     pix->rInit = random(MAX_RGB);
     pix->gInit = random(MAX_RGB);
@@ -63,8 +63,6 @@ void mkPixel(struct pixData *pixInfo, byte retPix[]) {
     retPix[G] = (int) ( (float) pixInfo->gInit * brightPer );
     retPix[B] = (int) ( (float) pixInfo->bInit * brightPer );
 
-
-
     if (pixInfo->step > 0) {
         // Achieved max brightness
         if (pixInfo->curBright >= pixInfo->maxBright) {
@@ -73,7 +71,7 @@ void mkPixel(struct pixData *pixInfo, byte retPix[]) {
                 return;
             }
 
-            pixInfo->step *= -1;
+            pixInfo->step = -(random(MAX_STEP)+1);
             return;
         }
 
@@ -89,23 +87,26 @@ void mkPixel(struct pixData *pixInfo, byte retPix[]) {
     } // if (pixInfo->step > 0) {
 
     
+    // (pixInfo->step <=0)
     else {
         if (pixInfo->curBright <= 0) {
             // Pixel should be black
             if (pixInfo->blackDelay >= 0) {
                 pixInfo->blackDelay -= 1;
-                return;
             }
 
             // Pixel is done being black, get new color
-            initPixelColor(pixInfo);
-            return;
+            else {
+                initPixelColor(pixInfo);
+            }
         }
 
-        // Fade to black
-        pixInfo->curBright += pixInfo->step;
-        if (pixInfo->maxBright < 0) {
-            pixInfo->maxBright = 0;
+        else {
+            // Fade to black
+            pixInfo->curBright += pixInfo->step;
+            if (pixInfo->curBright < 0) {
+                pixInfo->curBright = 0;
+            }
         }
     }
 }
