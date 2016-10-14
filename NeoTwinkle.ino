@@ -15,7 +15,7 @@
 // How many NeoPixels are attached to the Arduino?
 #define NUMPIXELS      2
 #define MAX_RGB        255
-#define INIT_BRIGHT    128
+#define MAX_BRIGHT    128
 #define MAX_STEP       8
 #define RAND_DELAY     8
 
@@ -46,7 +46,7 @@ struct pixData pixelArr[NUMPIXELS];
 
 void initPixelColor(struct pixData *pix) {
     pix->curBright = 0;
-    pix->maxBright = 128 + random(INIT_BRIGHT);
+    pix->maxBright = 128 + random(MAX_BRIGHT);
     pix->step = random(MAX_STEP)+8;
     pix->initDelay = 30 + (random(RAND_DELAY) * 8);
     pix->blackDelay = 20 + (random(RAND_DELAY) * 5);
